@@ -37,7 +37,7 @@ Um aplicativo web moderno para controle financeiro pessoal, desenvolvido com Vue
 
 ## Uso
 
-O aplicativo é intuitivo e fácil de usar. Consulte a [Wiki](https://github.com/seu-usuario/controle-financeiro/wiki) para documentação detalhada das funcionalidades.
+O aplicativo é intuitivo e fácil de usar. Consulte a [Wiki](https://github.com/jlneto15/controlefinanceiro/blob/main/docs/FUNCIONALIDADES.md) para documentação detalhada das funcionalidades.
 
 ## Contribuição
 

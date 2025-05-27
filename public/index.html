@@ -433,11 +433,32 @@
       gap: 0.3em;
       font-weight: 500;
     }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 4px;
+      font-size: 14px;
+      z-index: 9999;
+      opacity: 0;
+      transform: translateY(-20px);
+      transition: all 0.3s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
   </style>
 </head>
 
 <body>
   <div id="app">
+    <div class="toast" ref="toast"></div>
     <div class="card">
       <div class="filtros painel-topo" style="display:flex; gap:1.2em; margin-bottom:1em;">
         <div class="filter-group">
@@ -923,11 +944,19 @@
         function getFirebaseConfigFromStorage() {
           const raw = localStorage.getItem('firebaseConfig');
           if (!raw) return null;
-          try { return JSON.parse(raw); } catch { return null; }
+          try { 
+            return JSON.parse(raw);
+          } catch { 
+            return null; 
+          }
         }
+
         function setFirebaseConfigToStorage(cfg) {
+          if (!cfg) return;
           localStorage.setItem('firebaseConfig', JSON.stringify(cfg));
+          localStorage.setItem('usarFirebase', cfg.usarFirebase ? '1' : '0');
         }
+
         const firebaseConfigDefault = {
           apiKey: '',
           authDomain: '',
@@ -937,47 +966,73 @@
           appId: '',
           usarFirebase: false
         };
+
         const firebaseConfig = ref({ ...firebaseConfigDefault });
-
-        // Carregar config do storage
-        const firebaseConfigSalvo = getFirebaseConfigFromStorage();
-        // Prioriza a flag do localStorage se existir
-        let usarFirebaseFlag = null;
-        if (localStorage.getItem('usarFirebase') !== null) {
-          usarFirebaseFlag = localStorage.getItem('usarFirebase') === '1';
-        }
-        if (firebaseConfigSalvo) {
-          firebaseConfig.value = { ...firebaseConfigDefault, ...firebaseConfigSalvo };
-          if (usarFirebaseFlag !== null) {
-            firebaseConfig.value.usarFirebase = usarFirebaseFlag;
-          }
-        } else if (usarFirebaseFlag !== null) {
-          firebaseConfig.value.usarFirebase = usarFirebaseFlag;
-        }
-
         const firebaseConfigJson = ref('');
         const modalFirebaseConfigVisivel = ref(false);
         const firebaseConfigAtivoTemp = ref(false);
+
+        // Carregar config inicial
+        const configSalva = getFirebaseConfigFromStorage();
+        if (configSalva) {
+          firebaseConfig.value = { ...firebaseConfigDefault, ...configSalva };
+          firebaseConfig.value.usarFirebase = localStorage.getItem('usarFirebase') === '1';
+        }
+
         function openModalFirebaseConfig() {
           const cfg = getFirebaseConfigFromStorage() || firebaseConfigDefault;
           firebaseConfigJson.value = JSON.stringify(cfg, null, 2);
-          firebaseConfigAtivoTemp.value = !!cfg.usarFirebase;
+          firebaseConfigAtivoTemp.value = cfg.usarFirebase;
           modalFirebaseConfigVisivel.value = true;
         }
+
         function fecharModalFirebaseConfig() {
           modalFirebaseConfigVisivel.value = false;
         }
-        function salvarFirebaseConfig() {
+
+        async function salvarFirebaseConfig() {
           try {
             const obj = JSON.parse(firebaseConfigJson.value);
-            obj.usarFirebase = !!firebaseConfigAtivoTemp.value;
+            obj.usarFirebase = firebaseConfigAtivoTemp.value;
+
+            // Se estiver ativando o Firebase, verifica a configuração
+            if (obj.usarFirebase) {
+              if (!obj.apiKey || !obj.projectId) {
+                throw new Error('Configuração do Firebase incompleta. Preencha todos os campos.');
+              }
+              
+              // Tenta inicializar o Firebase
+              if (!firebase.apps || firebase.apps.length === 0) {
+                firebase.initializeApp(obj);
+              }
+              
+              // Testa a conexão
+              const dbRef = firebase.database().ref('controle/dados');
+              await dbRef.get();
+            }
+
+            // Salva a configuração
             setFirebaseConfigToStorage(obj);
             firebaseConfig.value = { ...firebaseConfigDefault, ...obj };
-            localStorage.setItem('usarFirebase', obj.usarFirebase ? '1' : '0');
+            
             fecharModalFirebaseConfig();
-            carregarDados();
+            await carregarDados();
           } catch (e) {
-            alert('JSON inválido: ' + e.message);
+            alert('Erro ao configurar Firebase: ' + e.message);
+          }
+        }
+
+        function getDbRef() {
+          if (!firebaseConfig.value.usarFirebase) return null;
+          
+          try {
+            if (!firebase.apps || firebase.apps.length === 0) {
+              firebase.initializeApp(firebaseConfig.value);
+            }
+            return firebase.database().ref('controle/dados');
+          } catch (e) {
+            console.error('Erro ao inicializar Firebase:', e);
+            return null;
           }
         }
         // --- Fim Firebase Configuração dinâmica (JSON) ---
@@ -1092,17 +1147,6 @@
           }, null, 2);
         }
 
-        function getDbRef() {
-          const firebaseConfig = getFirebaseConfigFromStorage() || firebaseConfigDefault;
-          if (typeof firebase !== 'undefined' && firebase?.database && firebaseConfig.apiKey) {
-            if (!firebase.apps || firebase.apps.length === 0) {
-              firebase.initializeApp(firebaseConfig);
-            }
-            return firebase.database().ref('controle/dados');
-          }
-          return null;
-        }
-
         async function carregarDados() {
           try {
             if (firebaseConfig.value.usarFirebase) {
@@ -1142,21 +1186,55 @@
             transacoes: transacoes.value
           };
           try {
+            let salvouFirebase = false;
             if (firebaseConfig.value.usarFirebase) {
               const dbRef = getDbRef();
               if (dbRef) {
                 await dbRef.set(obj);
+                salvouFirebase = true;
               } else {
                 throw new Error('Firebase não configurado corretamente.');
               }
-            } else {
-              localStorage.setItem('controleFinanceiro', JSON.stringify(obj));
+            }
+            
+            // Sempre salva no localStorage
+            localStorage.setItem('controleFinanceiro', JSON.stringify(obj));
+            
+            // Cria backup apenas se for o primeiro do dia
+            const now = new Date();
+            const today = now.getFullYear() +
+              String(now.getMonth() + 1).padStart(2, '0') +
+              String(now.getDate()).padStart(2, '0');
+            
+            // Verifica se já existe backup para hoje
+            const backupKey = `controleFinanceiro${today}`;
+            if (!localStorage.getItem(backupKey)) {
+              localStorage.setItem(backupKey, JSON.stringify(obj));
+              
+              // Mantém apenas os últimos 5 backups
+              const backups = Object.keys(localStorage)
+                .filter(key => key.startsWith('controleFinanceiro') && key !== 'controleFinanceiro')
+                .sort()
+                .reverse();
+              if (backups.length > 5) {
+                backups.slice(5).forEach(key => localStorage.removeItem(key));
+              }
+            }
+
+            // Mostra toast notification se salvou no Firebase
+            if (salvouFirebase) {
+              const toast = document.querySelector('.toast');
+              toast.textContent = 'Dados sincronizados com sucesso!';
+              toast.classList.add('show');
+              setTimeout(() => {
+                toast.classList.remove('show');
+              }, 3000);
             }
           } catch (error) {
             console.error("Erro ao salvar dados:", error);
             alert("Falha ao salvar dados. Verifique o console.");
           }
-          atualizarJson(); // Importante para refletir o estado salvo no textarea do JSON modal
+          atualizarJson();
         }
 
         function openModalCategoria(cat = null) {
@@ -1175,7 +1253,7 @@
           } else {
             categorias.value.push({ id: Date.now().toString(), nome: catNome.value.trim() });
           }
-          atualizarJson();
+          salvarDados();
           fecharModal();
         }
         function excluirCategoria(cat) {
@@ -1183,7 +1261,7 @@
           categorias.value = categorias.value.filter(c => c.id !== cat.id);
           // Remove referência da categoria das transações
           transacoes.value = transacoes.value.map(tx => tx.categoria === cat.id ? { ...tx, categoria: '' } : tx);
-          atualizarJson();
+          salvarDados();
         }
 
         function openModalRecorrencia(rec = null) {
@@ -1222,7 +1300,7 @@
             }
             recorrencias.value.push({ id: recId.value.trim(), nome: recNome.value.trim(), diaVenc: dia });
           }
-          atualizarJson();
+          salvarDados();
           fecharModal();
         }
 
@@ -1294,13 +1372,13 @@
             transacoes.value.push({ ...novaTx, id: idNova });
             gerarRecorrenciasFuturas({ ...novaTx, id: idNova });
           }
-          atualizarJson();
+          salvarDados();
           fecharModal();
         }
         function excluirTransacao(tx) {
           if (confirm(`Tem certeza que deseja excluir a transação "${tx.titulo}"?`)) {
             transacoes.value = transacoes.value.filter(t => t.id !== tx.id);
-            atualizarJson();
+            salvarDados();
           }
         }
         function gerarRecorrenciasFuturas(txBase) {
@@ -1463,18 +1541,6 @@
         watch([firebaseConfig], carregarDados);
         carregarDados();
 
-        // Persistência automática no localStorage quando não estiver usando Firebase
-        watch([categorias, recorrencias, transacoes], () => {
-          if (!firebaseConfig.value.usarFirebase) {
-            const obj = {
-              categorias: categorias.value,
-              recorrencias: recorrencias.value,
-              transacoes: transacoes.value
-            };
-            localStorage.setItem('controleFinanceiro', JSON.stringify(obj));
-          }
-        }, { deep: true });
-
         const formatDate = d => {
           if (!d) return '';
           // Espera-se YYYY-MM-DD
@@ -1561,6 +1627,18 @@
           }
         }
 
+        // Adiciona watch para atualizar o estado do Firebase quando a configuração mudar
+        watch(firebaseConfig, (newConfig) => {
+          if (newConfig.usarFirebase) {
+            const dbRef = getDbRef();
+            if (!dbRef) {
+              console.error('Firebase não configurado corretamente.');
+              newConfig.usarFirebase = false;
+              setFirebaseConfigToStorage(newConfig);
+            }
+          }
+        }, { deep: true });
+
         return {
           categorias, recorrencias, transacoes,
           firebaseConfig, filterStart, filterEnd,
@@ -1574,6 +1652,7 @@
           modalFirebaseConfigVisivel, firebaseConfigJson, openModalFirebaseConfig, fecharModalFirebaseConfig, salvarFirebaseConfig,
           selecionarTodos, selecionados, totalSelecionado, toggleSelecionarTodos,
           transacoesPrioritarias, priorizarTransacao, despriorizarTransacao,
+          firebaseConfigAtivoTemp,
           pagarTransacao,
           totalPrioritariasComSaldo,
           totalSelecionadoComSaldo,

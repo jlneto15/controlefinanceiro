@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Controle Financeiro Moderno</title>
+  <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f4b0.png">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://unpkg.com/imask"></script>
+  <style>
+    :root {
+      --primary-color: #4A90E2;
+      --primary-hover-color: #357ABD;
+      --secondary-color: #777;
+      --secondary-hover-color: #555;
+      --danger-color: #D0021B;
+      --success-color: #28a745;
+      --light-bg-color: #f0f2f5;
+      --card-bg-color: #ffffff;
+      --text-color: #333;
+      --text-light-color: #666;
+      --border-color: #e0e0e0;
+      --shadow-color: rgba(0, 0, 0, 0.08);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--light-bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 1.5rem;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    #app {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background-color: var(--card-bg-color);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px var(--shadow-color);
+    }
+
+    h2,
+    h3,
+    h4 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      color: var(--primary-color);
+    }
+
+    h3 {
+      font-size: 1.4rem;
+    }
+
+    h4 {
+      font-size: 1.1rem;
+      color: var(--text-color);
+    }
+
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      margin-bottom: 0.8rem;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    input[type="checkbox"] {
+      margin-right: 0.5rem;
+      vertical-align: middle;
+    }
+
+    .btn,
+    button {
+      /* Base button style */
+      padding: 0.6rem 1.2rem;
+      font-size: 0.95rem;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s, box-shadow 0.2s;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .btn-primary,
+    button[class="btn-primary"] {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    .btn-primary:hover,
+    button[class="btn-primary"]:hover {
+      background-color: var(--primary-hover-color);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-secondary,
+    button[class="btn-secondary"] {
+      background-color: var(--secondary-color);
+      color: white;
+    }
+
+    .btn-secondary:hover,
+    button[class="btn-secondary"]:hover {
+      background-color: var(--secondary-hover-color);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-danger {
+      background-color: var(--danger-color);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background-color: #A80015;
+    }
+
+    .btn-icon {
+      background: transparent;
+      color: var(--primary-color);
+      padding: 0.3rem;
+      font-size: 1.2rem;
+      border-radius: 50%;
+      line-height: 1;
+    }
+
+    .btn-icon:hover {
+      background-color: rgba(74, 144, 226, 0.1);
+    }
+
+    .btn-icon.danger {
+      color: var(--danger-color);
+    }
+
+    .btn-icon.danger:hover {
+      background-color: rgba(208, 2, 27, 0.1);
+    }
+
+
+    .filtros {
+      display: flex;
+      /* flex-wrap: wrap; */
+      gap: 1.2em;
+      align-items: flex-end;
+      margin-bottom: 0.5em;
+    }
+
+    .filtros label {
+      margin-bottom: 0.2rem;
+      /* Smaller margin for filter labels */
+    }
+
+    .filtros input,
+    .filtros select {
+      margin-bottom: 0;
+      /* Remove bottom margin for inputs in filters */
+    }
+
+    .filtros .filter-group {
+      /* Wrap label and input if needed */
+      display: flex;
+      flex-direction: column;
+    }
+
+    .filtros label input[type="checkbox"] {
+      /* specific style for checkbox label consistency */
+      display: inline-block;
+      width: auto;
+      margin-bottom: 0;
+    }
+
+
+    .actions-toolbar {
+      margin-top: 1rem;
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      box-shadow: 0 2px 8px var(--shadow-color);
+      border-radius: 8px;
+      overflow: hidden;
+      /* For border-radius on table */
+      font-size: 0.95em;
+    }
+
+    th,
+    td {
+      padding: 0.35rem 0.7rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th {
+      background-color: #e8eaf6;
+      /* Lighter than primary */
+      color: var(--primary-hover-color);
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #fdfdfd;
+    }
+
+    tbody tr:hover {
+      background-color: #f1f3f8;
+    }
+
+    td .actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    td small {
+      display: block;
+      font-size: 0.8em;
+      color: var(--text-light-color);
+    }
+
+    .recurrent-icon {
+      font-size: 0.9em;
+      margin-right: 0.3em;
+      color: var(--secondary-color);
+    }
+
+    .text-entrada {
+      color: var(--success-color) !important;
+      font-weight: 500;
+    }
+
+    .text-saida {
+      color: var(--danger-color);
+      font-weight: 500;
+    }
+
+    .bg-vencido {
+      background-color: #ffe5e5 !important;
+    }
+
+    .bg-vencido td {
+      color: var(--danger-color);
+    }
+
+    .bg-paga {
+      background-color: #e6ffe6 !important;
+    }
+
+    .bg-paga td {
+      color: var(--success-color);
+    }
+
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+
+    .modal {
+      background-color: var(--card-bg-color);
+      padding: 0;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      width: 100%;
+      max-width: 500px;
+      z-index: 1001;
+      display: flex;
+      flex-direction: column;
+      max-height: 90vh;
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .modal-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      margin-bottom: 0;
+      font-size: 1.25rem;
+    }
+
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.8rem;
+      line-height: 1;
+      color: var(--text-light-color);
+      cursor: pointer;
+      padding: 0.2rem;
+    }
+
+    .modal-close-btn:hover {
+      color: var(--text-color);
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+    }
+
+    .modal-body hr {
+      border: none;
+      border-top: 1px solid var(--border-color);
+      margin: 1.5rem 0;
+    }
+
+    .modal-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.8rem;
+      background-color: #f9f9f9;
+      /* Slightly different bg for footer */
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+
+    .items-list {
+      list-style: none;
+      padding: 0;
+      margin-top: 1rem;
+    }
+
+    .items-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .items-list li:last-child {
+      border-bottom: none;
+    }
+
+    .items-list span {
+      color: var(--text-color);
+    }
+
+    .painel-topo {
+      flex: 1 1 100%;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1.2em;
+      margin-bottom: 0;
+      margin-top: 0;
+    }
+
+    .painel-info {
+      justify-items: stretch;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 1.2em;
+    }
+
+    .painel-botoes {
+      display: flex;
+      gap: 0.5em;
+      align-items: flex-end;
+    }
+
+    .firebase-badge {
+      background: #fffbe6;
+      color: #ff9800;
+      border: 1px solid #ffe0b2;
+      border-radius: 4px;
+      padding: 0.2em 0.7em 0.2em 0.4em;
+      font-size: 0.98em;
+      display: flex;
+      align-items: center;
+      gap: 0.3em;
+      font-weight: 500;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div class="card">
+      <div class="filtros painel-topo" style="display:flex; gap:1.2em; margin-bottom:1em;">
+        <div class="filter-group">
+          <label for="filterStart">De:</label>
+          <input type="date" id="filterStart" v-model="filterStart">
+        </div>
+        <div class="filter-group">
+          <label for="filterEnd">Até:</label>
+          <input type="date" id="filterEnd" v-model="filterEnd">
+        </div>
+        <div class="filter-group">
+          <label for="filterCategoria">Categoria:</label>
+          <select id="filterCategoria" v-model="filterCategoria">
+            <option value="">Todas</option>
+            <option value="semcat">Sem Categoria</option>
+            <option v-for="c in categoriasSorted" :key="c.id" :value="c.id">{{ c.nome }}</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label for="filterTexto">Título:</label>
+          <input type="text" id="filterTexto" v-model="filterTexto" placeholder="Buscar por título...">
+        </div>
+        <div class="filter-group">
+          <label for="filtroNaoPagas">
+            <input type="checkbox" id="filtroNaoPagas" v-model="filtroNaoPagas"> Apenas não pagas
+          </label>
+        </div>
+        <div class="filter-group">
+          <label for="filtroRecorrentes">Recorrência:</label>
+          <select id="filtroRecorrentes" v-model="filtroRecorrentes">
+            <option value="">Todas</option>
+            <option value="semrec">Sem Recorrência</option>
+            <option v-for="r in recorrencias" :key="r.id" :value="r.id">{{ r.nome }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="painel-topo" style="margin-top: 10px;">
+        <span style="font-size:1.1em;">
+          <strong>Vencidos:</strong>
+          <span :class="resumoTotal < 0 ? 'text-saida' : 'text-entrada'">{{ formatCurrency(resumoTotal) }}</span>
+        </span>
+        <div class="painel-botoes" style="display:flex; gap:0.5em;">
+          <button @click="openModalCategoria()" class="btn-icon" title="Categorias"><span
+              style="font-size:1.3em;">📂</span></button>
+          <button @click="openModalRecorrencia()" class="btn-icon" title="Recorrências"><span
+              style="font-size:1.3em;">🔁</span></button>
+          <button @click="openModalTransacao()" class="btn-icon" title="Nova Transação"><span
+              style="font-size:1.3em;">➕</span></button>
+          <button @click="openModalDatabaseJson()" class="btn-icon" title="Ver/Editar JSON"><span
+              style="font-size:1.3em;">📝</span></button>
+          <button @click="openModalFirebaseConfig()" class="btn-icon" title="Configurar Firebase"><span
+              style="font-size:1.3em;">⚙️</span></button>
+          <button @click="openModalAjuda()" class="btn-icon" title="Ajuda"><span
+              style="font-size:1.3em;">❓</span></button>
+        </div>
+        <div class="filter-group" style="margin:0;" title="Saldo Atual">
+          <!-- <label for="saldoAtual">Atual:</label> -->
+          <input type="number" id="saldoAtual" v-model="saldoAtual" placeholder="0.00" step="0.01" style="width:100px;margin-bottom: 0px;">
+        </div>
+        <span v-if="firebaseConfig.usarFirebase" class="firebase-badge" title="Firebase Ativo">
+          <svg fill="none" height="1.2em" viewBox="0 0 73 91" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M22.5752 87.933C26.3634 89.4568 30.4722 90.3615 34.7873 90.5132C40.6261 90.717 46.1816 89.5089 51.1455 87.2147C45.1923 84.8757 39.8009 81.4554 35.1974 77.2024C32.2171 81.9798 27.805 85.7506 22.5752 87.933Z"
+              fill="#FF9100">
+            </path>
+            <path
+              d="M35.1996 77.2049C24.6952 67.4909 18.3219 53.4295 18.8613 38.0059C18.8787 37.5063 18.906 37.0042 18.9359 36.5046C17.0542 36.0174 15.0905 35.7216 13.0697 35.6495C10.1764 35.5476 7.37501 35.908 4.73026 36.6512C1.92643 41.5629 0.233686 47.1979 0.0224039 53.2356C-0.521958 68.8158 8.90619 82.4273 22.5749 87.9331C27.8047 85.7532 32.2168 81.9849 35.1996 77.2049Z"
+              fill="#FFC400">
+            </path>
+            <path
+              d="M35.1998 77.2047C37.6433 73.2973 39.1222 68.7137 39.2962 63.7772C39.7486 50.792 31.019 39.6214 18.9361 36.5044C18.9063 37.004 18.8789 37.5061 18.8615 38.0057C18.3246 53.4268 24.6954 67.4883 35.1998 77.2047Z"
+              fill="#FF9100">
+            </path>
+            <path
+              d="M37.9435 0C31.0632 5.51321 25.6271 12.7813 22.341 21.1555C20.4594 25.9529 19.2762 31.1032 18.9307 36.5045C31.0135 39.6216 39.7432 50.7922 39.2883 63.7798C39.1168 68.7163 37.6304 73.2949 35.1919 77.2074C39.7929 81.4653 45.1868 84.8806 51.14 87.2196C63.0911 81.6965 71.5697 69.81 72.0594 55.7511C72.3775 46.6411 68.8777 38.5229 63.9337 31.6699C58.7113 24.4242 37.9435 0 37.9435 0Z"
+              fill="#DD2C00">
+            </path>
+          </svg> Firebase
+        </span>
+      </div>
+    </div>
+
+    <div v-if="transacoesPrioritarias.length > 0" class="card">
+      <h2>Transações Prioritárias</h2>
+      <div style="margin-bottom:0.5em; font-size:1.05em;">
+        <label style="font-weight:500;">
+          <span style="margin-right:0.5em;">Total Prioritárias:</span>
+          <span :class="totalPrioritariasComSaldo < 0 ? 'text-saida' : 'text-entrada'">{{ formatCurrency(totalPrioritariasComSaldo)
+            }}</span>
+        </label>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Título</th>
+            <th>Categoria</th>
+            <th>Vencimento</th>
+            <th>Pagamento</th>
+            <th>Valor</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="tx in transacoesPrioritarias" :key="tx.id"
+            :class="tx.dataPagamento ? 'bg-paga' : (txVencida(tx) ? 'bg-vencido' : '')">
+            <td style="white-space:nowrap;">
+              {{ tx.titulo }}
+            </td>
+            <td>{{ categoriaNome(tx.categoria) }}</td>
+            <td>
+              {{ formatDate(tx.dataVencimento) }}
+              <span v-if="tx.recorrencia" class="recurrent-icon" title="Transação Recorrente">🔁</span>
+            </td>
+            <td>{{ tx.dataPagamento ? formatDate(tx.dataPagamento) : '-' }}</td>
+            <td :class="tx.tipo === 'entrada' ? 'text-entrada' : 'text-saida'" :title="'Valor original: '+ formatCurrency(tx.valor)">
+              {{ tx.pagamentoParcial && tx.valorRestante > 0 ? formatCurrency(tx.valorRestante) : formatCurrency(tx.valor) }}
+            </td>
+            <td class="actions">
+              <button @click="despriorizarTransacao(tx)" class="btn-icon" title="Despriorizar">⬇️</button>
+              <button @click="openModalTransacao(tx)" class="btn-icon" title="Editar">✏️</button>
+              <button @click="excluirTransacao(tx)" class="btn-icon danger" title="Excluir">🗑️</button>
+              <button v-if="!tx.dataPagamento && !(tx.pagamentoParcial && tx.valorRestante > 0)" @click="pagarTransacao(tx)" class="btn-icon" title="Pagar">💸</button>
+              <button v-if="tx.pagamentoParcial && tx.valorRestante > 0" @click="openModalPagamentoParcial(tx)" class="btn-icon" title="Devolver">💰</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Extrato</h2>
+      <div style="margin-bottom:0.5em; font-size:1.05em;">
+        <label style="font-weight:500;">
+          <span style="margin-right:0.5em;">Total Selecionado:</span>
+          <span :class="totalSelecionadoComSaldo < 0 ? 'text-saida' : 'text-entrada'">{{ formatCurrency(totalSelecionadoComSaldo)
+            }}</span>
+        </label>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th><input type="checkbox" v-model="selecionarTodos" @change="toggleSelecionarTodos"></th>
+            <th>Título</th>
+            <th>Categoria</th>
+            <th>Vencimento</th>
+            <th>Pagamento</th>
+            <th>Valor</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="tx in transacoesFiltradas.filter(tx => !tx.prioritaria)" :key="tx.id"
+            :class="tx.dataPagamento ? 'bg-paga' : (txVencida(tx) ? 'bg-vencido' : '')">
+            <td><input type="checkbox" v-model="selecionados" :value="tx.id"></td>
+            <td style="white-space:nowrap;">
+              {{ tx.titulo }}
+            </td>
+            <td>{{ categoriaNome(tx.categoria) }}</td>
+            <td>
+              {{ formatDate(tx.dataVencimento) }}
+              <span v-if="tx.recorrencia" class="recurrent-icon" title="Transação Recorrente">🔁</span>
+            </td>
+            <td>{{ tx.dataPagamento ? formatDate(tx.dataPagamento) : '-' }}</td>
+            <td :class="tx.tipo === 'entrada' ? 'text-entrada' : 'text-saida'" :title="'Valor original: '+ formatCurrency(tx.valor)">
+              {{ tx.pagamentoParcial && tx.valorRestante > 0 ? formatCurrency(tx.valorRestante) : formatCurrency(tx.valor) }}
+            </td>
+            <td class="actions">
+              <button v-if="!tx.prioritaria" @click="priorizarTransacao(tx)" class="btn-icon"
+                title="Priorizar">⭐</button>
+              <button @click="openModalTransacao(tx)" class="btn-icon" title="Editar">✏️</button>
+              <button @click="excluirTransacao(tx)" class="btn-icon danger" title="Excluir">🗑️</button>
+              <button v-if="!tx.dataPagamento && !(tx.pagamentoParcial && tx.valorRestante > 0)" @click="pagarTransacao(tx)" class="btn-icon" title="Pagar">💸</button>
+              <button v-if="tx.pagamentoParcial && tx.valorRestante > 0" @click="openModalPagamentoParcial(tx)" class="btn-icon" title="Devolver">💰</button>
+            </td>
+          </tr>
+          <tr v-if="transacoesFiltradas.length === 0">
+            <td colspan="7" style="text-align:center; color: var(--text-light-color);">Nenhuma transação encontrada para
+              os filtros selecionados.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div v-if="modal==='categoria'" class="modal-overlay" @click.self="fecharModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>{{ categoriaEdita ? 'Editar Categoria' : 'Nova Categoria' }}</h3>
+          <button @click="fecharModal()" class="modal-close-btn" title="Fechar">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label for="catNome">Nome da Categoria:</label>
+          <input id="catNome" v-model="catNome" placeholder="Ex: Alimentação">
+          <hr>
+          <h4>Categorias Existentes:</h4>
+          <ul class="items-list" v-if="categorias.length > 0">
+            <li v-for="c in categoriasSorted" :key="c.id" style="display:flex;align-items:center;justify-content:space-between;gap:0.5em;">
+              <span>{{ c.nome }}</span>
+              <span style="display:flex;gap:0.2em;align-items:center;">
+                <button @click="openModalCategoria(c)" class="btn-icon" title="Editar">✏️</button>
+                <button @click="excluirCategoria(c)" class="btn-icon danger" title="Excluir">🗑️</button>
+              </span>
+            </li>
+          </ul>
+          <p v-else style="color: var(--text-light-color);">Nenhuma categoria cadastrada.</p>
+        </div>
+        <div class="modal-footer">
+          <button @click="fecharModal()" class="btn-secondary">Cancelar</button>
+          <button @click="salvarCategoria()" class="btn-primary">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="modal==='recorrencia'" class="modal-overlay" @click.self="fecharModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>{{ recorrenciaEdita ? 'Editar Recorrência' : 'Nova Recorrência' }}</h3>
+          <button @click="fecharModal()" class="modal-close-btn" title="Fechar">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label for="recId">ID Único:</label>
+          <input id="recId" v-model="recId" placeholder="Ex: aluguel_mensal" :disabled="!!recorrenciaEdita">
+          <label for="recNome">Nome da Recorrência:</label>
+          <input id="recNome" v-model="recNome" placeholder="Ex: Aluguel">
+          <label for="recDiaVenc">Dia do Vencimento (1-31):</label>
+          <input id="recDiaVenc" type="number" v-model="recDiaVenc" placeholder="Ex: 5" min="1" max="31">
+          <hr>
+          <h4>Recorrências Existentes:</h4>
+          <ul class="items-list" v-if="recorrencias.length > 0">
+            <li v-for="r in recorrencias" :key="r.id">
+              <span>{{ r.nome }} (Dia {{r.diaVenc}})</span>
+              <button @click="openModalRecorrencia(r)" class="btn-icon" title="Editar">✏️</button>
+            </li>
+          </ul>
+          <p v-else style="color: var(--text-light-color);">Nenhuma recorrência cadastrada.</p>
+        </div>
+        <div class="modal-footer">
+          <button @click="fecharModal()" class="btn-secondary">Cancelar</button>
+          <button @click="salvarRecorrencia()" class="btn-primary">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="modal==='transacao'" class="modal-overlay" @click.self="fecharModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>{{ transacaoEdita ? 'Editar Transação' : 'Nova Transação' }}</h3>
+          <button @click="fecharModal()" class="modal-close-btn" title="Fechar">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label for="txTitulo">Título:</label>
+          <input id="txTitulo" v-model="txTitulo" placeholder="Ex: Compra Supermercado">
+
+          <label for="txDataVenc">Data de Vencimento:</label>
+          <input id="txDataVenc" type="date" v-model="txDataVenc">
+
+          <label for="txDataPag">Data de Pagamento (opcional):</label>
+          <input id="txDataPag" type="date" v-model="txDataPag">
+
+          <label for="txTipo">Tipo:</label>
+          <select id="txTipo" v-model="txTipo">
+            <option value="entrada">Entrada</option>
+            <option value="saida">Saída</option>
+          </select>
+
+          <label for="txCategoria">Categoria:</label>
+          <select id="txCategoria" v-model="txCategoria">
+            <option value="">Sem Categoria</option>
+            <option :value="c.id" v-for="c in categoriasSorted" :key="c.id">{{ c.nome }}</option>
+          </select>
+
+          <label for="txRecorrencia">Recorrência (opcional):</label>
+          <select id="txRecorrencia" v-model="txRecorrencia">
+            <option value="">Nenhuma</option>
+            <option :value="r.id" v-for="r in recorrencias" :key="r.id">{{ r.nome }}</option>
+          </select>
+
+          <label for="txValor">Valor (R$):</label>
+          <input id="txValor" type="number" v-model="txValor" placeholder="Ex: 150.75" step="0.01">
+          <div style="margin-top:1em;">
+            <label style="display:flex;align-items:center;gap:0.5em;">
+              <input type="checkbox" v-model="txParcelada"> Compra parcelada
+            </label>
+            <div v-if="txParcelada" style="display:flex;gap:1em;align-items:center;">
+              <label>Atual:
+                <input type="number" v-model="txParcelaAtual" min="1" style="width:60px;">
+              </label>
+              <label>Total:
+                <input type="number" v-model="txParcelaTotal" min="2" style="width:60px;">
+              </label>
+            </div>
+          </div>
+          <div style="margin-top:1em;">
+            <label style="display:flex;align-items:center;gap:0.5em;">
+              <input type="checkbox" v-model="txPagamentoParcial"> Devolver
+            </label>
+            <div v-if="txPagamentoParcial" style="margin-top:0.5em;">
+              <label for="txValorRestante">Valor Restante (R$):</label>
+              <input id="txValorRestante" type="number" v-model="txValorRestante" placeholder="Ex: 150.75" step="0.01">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="fecharModal()" class="btn-secondary">Cancelar</button>
+          <button @click="salvarTransacao()" class="btn-primary">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="modalDatabaseJsonVisivel" class="modal-overlay" @click.self="fecharModalDatabaseJson()">
+      <div class="modal" style="max-width: 700px;">
+        <div class="modal-header">
+          <h3>Database JSON</h3>
+          <button @click="fecharModalDatabaseJson()" class="modal-close-btn" title="Fechar">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size: 0.9em; color: var(--danger-color); margin-bottom: 1rem;">
+            <strong>Atenção:</strong> Editar este JSON diretamente pode corromper seus dados se não for feito
+            corretamente. Use com cautela.
+          </p>
+          <textarea v-model="databaseJson" rows="15"
+            style="font-family: monospace; font-size: 0.85em; width: 100%;"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button @click="fecharModalDatabaseJson()" class="btn-secondary">Cancelar</button>
+          <button @click="aplicarDatabaseJson()" class="btn-primary">Aplicar e Salvar JSON</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="modalFirebaseConfigVisivel" class="modal-overlay" @click.self="fecharModalFirebaseConfig()">
+      <div class="modal" style="max-width: 600px;">
+        <div class="modal-header">
+          <h3>Configuração do Firebase (JSON)</h3>
+          <button @click="fecharModalFirebaseConfig()" class="modal-close-btn" title="Fechar">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label style="display:flex;align-items:center;gap:0.5em;margin-bottom:1em;">
+            <input type="checkbox" v-model="firebaseConfigAtivoTemp"> Usar Firebase (sincronizar com nuvem)
+          </label>
+          <label for="firebaseConfigJson">Cole ou edite o JSON de configuração do Firebase:</label>
+          <textarea id="firebaseConfigJson" v-model="firebaseConfigJson" rows="10"
+            style="font-family:monospace; width:100%;"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button @click="fecharModalFirebaseConfig()" class="btn-secondary">Cancelar</button>
+          <button @click="salvarFirebaseConfig()" class="btn-primary">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="modalAjudaVisivel" class="modal-overlay" @click.self="fecharModalAjuda()">
+      <div class="modal" style="max-width: 800px;">
+        <div class="modal-header">
+          <h3>Guia de Funcionalidades</h3>
+          <button @click="fecharModalAjuda()" class="modal-close-btn" title="Fechar">&times;</button>
+        </div>
+        <div class="modal-body">
+          <h4>Filtros</h4>
+          <ul>
+            <li><strong>De/Até:</strong> Filtra transações por período</li>
+            <li><strong>Categoria:</strong> Filtra por categoria específica</li>
+            <li><strong>Título:</strong> Busca por texto no título</li>
+            <li><strong>Apenas não pagas:</strong> Mostra apenas transações pendentes</li>
+          </ul>
+
+          <h4>Transações</h4>
+          <ul>
+            <li><strong>Nova Transação (➕):</strong> Adiciona uma nova transação</li>
+            <li><strong>Editar (✏️):</strong> Modifica uma transação existente</li>
+            <li><strong>Excluir (🗑️):</strong> Remove uma transação</li>
+            <li><strong>Pagar (💸):</strong> Marca uma transação como paga</li>
+            <li><strong>Priorizar (⭐):</strong> Move para a seção de transações prioritárias</li>
+            <li><strong>Despriorizar (⬇️):</strong> Remove da seção de prioritárias</li>
+          </ul>
+
+          <h4>Transações Parceladas</h4>
+          <ul>
+            <li>Marque a opção "Compra parcelada" ao criar/editar</li>
+            <li>Defina a parcela atual e total de parcelas</li>
+            <li>O sistema gera automaticamente todas as parcelas futuras</li>
+          </ul>
+
+          <h4>Recorrências</h4>
+          <ul>
+            <li><strong>Gerenciar Recorrências (🔁):</strong> Configura transações recorrentes</li>
+            <li>Cada recorrência tem um ID único e dia de vencimento</li>
+            <li>O sistema gera automaticamente as próximas 2 ocorrências</li>
+          </ul>
+
+          <h4>Categorias</h4>
+          <ul>
+            <li><strong>Gerenciar Categorias (📂):</strong> Adiciona/edita/exclui categorias</li>
+            <li>Organize suas transações por categorias</li>
+            <li>Filtre transações por categoria específica</li>
+          </ul>
+
+          <h4>Sincronização</h4>
+          <ul>
+            <li><strong>Firebase (⚙️):</strong> Configura sincronização com nuvem</li>
+            <li>Mantém seus dados sincronizados entre dispositivos</li>
+            <li>Backup automático na nuvem</li>
+          </ul>
+
+          <h4>Dados</h4>
+          <ul>
+            <li><strong>Ver/Editar JSON (📝):</strong> Acesso direto aos dados</li>
+            <li>Exportação/importação de dados</li>
+            <li>Backup manual dos dados</li>
+          </ul>
+
+          <h4>Funcionalidades Gerais</h4>
+          <ul>
+            <li><strong>Seleção Múltipla:</strong> Selecione várias transações para cálculos</li>
+            <li><strong>Total Selecionado:</strong> Soma das transações selecionadas</li>
+            <li><strong>Total Vencido:</strong> Soma das transações vencidas não pagas</li>
+            <li><strong>Transações Prioritárias:</strong> Seção especial para transações importantes</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button @click="fecharModalAjuda()" class="btn-primary">Fechar</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="modal==='pagamentoParcial'" class="modal-overlay" @click.self="fecharModal()">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>Pagamento Parcial</h3>
+          <button @click="fecharModal()" class="modal-close-btn" title="Fechar">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div style="margin-bottom:1em;">
+            <strong>Transação:</strong> {{ txTitulo }}
+            <br>
+            <strong>Valor Original:</strong> {{ formatCurrency(txValor) }}
+            <br>
+            <strong>Valor Restante:</strong> {{ formatCurrency(txValorRestante) }}
+          </div>
+
+          <label for="pagParcialValor">Valor do Pagamento (R$):</label>
+          <input id="pagParcialValor" type="number" v-model="pagParcialValor" placeholder="Ex: 150.75" step="0.01">
+
+          <label for="pagParcialData">Data do Pagamento:</label>
+          <input id="pagParcialData" type="date" v-model="pagParcialData">
+
+          <label for="pagParcialObs">Observação (opcional):</label>
+          <input id="pagParcialObs" type="text" v-model="pagParcialObs" placeholder="Ex: Pagamento parcial">
+
+          <div v-if="pagamentosParciais.length > 0" style="margin-top:1em;">
+            <h4>Histórico de Pagamentos</h4>
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Valor</th>
+                  <th>Observação</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(pag, index) in pagamentosParciais" :key="index">
+                  <td>{{ formatDate(pag.data) }}</td>
+                  <td>{{ formatCurrency(pag.valor) }}</td>
+                  <td>{{ pag.obs || '-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="fecharModal()" class="btn-secondary">Cancelar</button>
+          <button @click="salvarPagamentoParcial()" class="btn-primary">Registrar Pagamento</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const { createApp, ref, computed, watch } = Vue;
+    createApp({
+      setup() {
+        // --- Firebase Configuração dinâmica (JSON) ---
+        function getFirebaseConfigFromStorage() {
+          const raw = localStorage.getItem('firebaseConfig');
+          if (!raw) return null;
+          try { return JSON.parse(raw); } catch { return null; }
+        }
+        function setFirebaseConfigToStorage(cfg) {
+          localStorage.setItem('firebaseConfig', JSON.stringify(cfg));
+        }
+        const firebaseConfigDefault = {
+          apiKey: '',
+          authDomain: '',
+          projectId: '',
+          storageBucket: '',
+          messagingSenderId: '',
+          appId: '',
+          usarFirebase: false
+        };
+        const firebaseConfig = ref({ ...firebaseConfigDefault });
+
+        // Carregar config do storage
+        const firebaseConfigSalvo = getFirebaseConfigFromStorage();
+        // Prioriza a flag do localStorage se existir
+        let usarFirebaseFlag = null;
+        if (localStorage.getItem('usarFirebase') !== null) {
+          usarFirebaseFlag = localStorage.getItem('usarFirebase') === '1';
+        }
+        if (firebaseConfigSalvo) {
+          firebaseConfig.value = { ...firebaseConfigDefault, ...firebaseConfigSalvo };
+          if (usarFirebaseFlag !== null) {
+            firebaseConfig.value.usarFirebase = usarFirebaseFlag;
+          }
+        } else if (usarFirebaseFlag !== null) {
+          firebaseConfig.value.usarFirebase = usarFirebaseFlag;
+        }
+
+        const firebaseConfigJson = ref('');
+        const modalFirebaseConfigVisivel = ref(false);
+        const firebaseConfigAtivoTemp = ref(false);
+        function openModalFirebaseConfig() {
+          const cfg = getFirebaseConfigFromStorage() || firebaseConfigDefault;
+          firebaseConfigJson.value = JSON.stringify(cfg, null, 2);
+          firebaseConfigAtivoTemp.value = !!cfg.usarFirebase;
+          modalFirebaseConfigVisivel.value = true;
+        }
+        function fecharModalFirebaseConfig() {
+          modalFirebaseConfigVisivel.value = false;
+        }
+        function salvarFirebaseConfig() {
+          try {
+            const obj = JSON.parse(firebaseConfigJson.value);
+            obj.usarFirebase = !!firebaseConfigAtivoTemp.value;
+            setFirebaseConfigToStorage(obj);
+            firebaseConfig.value = { ...firebaseConfigDefault, ...obj };
+            localStorage.setItem('usarFirebase', obj.usarFirebase ? '1' : '0');
+            fecharModalFirebaseConfig();
+            carregarDados();
+          } catch (e) {
+            alert('JSON inválido: ' + e.message);
+          }
+        }
+        // --- Fim Firebase Configuração dinâmica (JSON) ---
+
+        const categorias = ref([]);
+        const recorrencias = ref([]);
+        const transacoes = ref([]);
+
+        const today = new Date();
+        const nextMonth = new Date(today);
+        nextMonth.setDate(today.getDate() + 30);
+
+        const filterStart = ref('');
+        const filterEnd = ref(nextMonth.toISOString().substr(0, 10));
+        const filterCategoria = ref('');
+        const filterTexto = ref('');
+
+        const filtroNaoPagas = ref(true);
+        const filtroRecorrentes = ref('');
+        const databaseJson = ref('');
+        const modal = ref(null);
+        const modalDatabaseJsonVisivel = ref(false);
+
+
+        const catNome = ref('');
+        const categoriaEdita = ref(null);
+
+        const recId = ref('');
+        const recNome = ref('');
+        const recDiaVenc = ref('');
+        const recorrenciaEdita = ref(null);
+
+        const txTitulo = ref('');
+        const txDataVenc = ref('');
+        const txDataPag = ref('');
+        const txTipo = ref('saida');
+        const txCategoria = ref('');
+        const txRecorrencia = ref('');
+        const txValor = ref('');
+        const transacaoEdita = ref(null);
+        const txParcelada = ref(false);
+        const txParcelaAtual = ref(1);
+        const txParcelaTotal = ref(2);
+        const txPagamentoParcial = ref(false);
+        const txValorRestante = ref('');
+        const pagParcialValor = ref('');
+        const pagParcialData = ref('');
+        const pagParcialObs = ref('');
+        const pagamentosParciais = ref([]);
+
+        const saldoAtual = ref(0);
+
+        const transacoesFiltradas = computed(() => {
+          const start = filterStart.value;
+          const end = filterEnd.value;
+          const categoria = filterCategoria.value;
+          const texto = filterTexto.value.trim().toLowerCase();
+
+          return transacoes.value
+            .filter(tx => {
+              const venc = tx.dataVencimento;
+              const matchesDate = (!start || venc >= start) && (!end || venc <= end);
+              const matchesPagas = filtroNaoPagas.value ? !tx.dataPagamento : true;
+              let matchesRecorrentes = true;
+              if (filtroRecorrentes.value === 'semrec') {
+                matchesRecorrentes = !tx.recorrencia;
+              } else if (filtroRecorrentes.value) {
+                matchesRecorrentes = tx.recorrencia === filtroRecorrentes.value;
+              }
+              let matchesCategoria = true;
+              if (categoria === 'semcat') {
+                matchesCategoria = !tx.categoria;
+              } else if (categoria) {
+                matchesCategoria = tx.categoria === categoria;
+              }
+              const matchesTexto = !texto || (tx.titulo && tx.titulo.toLowerCase().includes(texto));
+              return matchesDate && matchesPagas && matchesCategoria && matchesTexto && matchesRecorrentes;
+            })
+            .sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento) || a.titulo.localeCompare(b.titulo));
+        });
+        const formatCurrency = v => {
+          if (typeof v !== 'number') v = parseFloat(v);
+          if (isNaN(v)) return Number(0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        };
+
+        const selecionarTodos = ref(false);
+        const selecionados = ref([]);
+        const totalSelecionado = computed(() => {
+          return transacoesFiltradas.value
+            .filter(tx => selecionados.value.includes(tx.id))
+            .reduce((acc, tx) => tx.tipo === 'saida' ? acc - tx.valor : acc + tx.valor, 0);
+        });
+        function toggleSelecionarTodos() {
+          if (selecionarTodos.value) {
+            selecionados.value = transacoesFiltradas.value.map(tx => tx.id);
+          } else {
+            selecionados.value = [];
+          }
+        }
+        watch(transacoesFiltradas, () => {
+          // Se mudar o filtro, desmarca seleção e checkbox geral
+          selecionarTodos.value = false;
+          selecionados.value = [];
+        });
+
+        function atualizarJson() {
+          databaseJson.value = JSON.stringify({
+            categorias: categorias.value,
+            recorrencias: recorrencias.value,
+            transacoes: transacoes.value
+          }, null, 2);
+        }
+
+        function getDbRef() {
+          const firebaseConfig = getFirebaseConfigFromStorage() || firebaseConfigDefault;
+          if (typeof firebase !== 'undefined' && firebase?.database && firebaseConfig.apiKey) {
+            if (!firebase.apps || firebase.apps.length === 0) {
+              firebase.initializeApp(firebaseConfig);
+            }
+            return firebase.database().ref('controle/dados');
+          }
+          return null;
+        }
+
+        async function carregarDados() {
+          try {
+            if (firebaseConfig.value.usarFirebase) {
+              const dbRef = getDbRef();
+              if (dbRef) {
+                const snap = await dbRef.get();
+                if (snap.exists()) {
+                  const data = snap.val();
+                  categorias.value = data.categorias || [];
+                  recorrencias.value = data.recorrencias || [];
+                  transacoes.value = data.transacoes || [];
+                } else {
+                  categorias.value = []; recorrencias.value = []; transacoes.value = [];
+                }
+              } else {
+                throw new Error('Firebase não configurado corretamente.');
+              }
+            } else {
+              const localData = localStorage.getItem('controleFinanceiro');
+              const data = localData ? JSON.parse(localData) : {};
+              categorias.value = data.categorias || [];
+              recorrencias.value = data.recorrencias || [];
+              transacoes.value = data.transacoes || [];
+            }
+          } catch (error) {
+            console.error("Erro ao carregar dados:", error);
+            alert("Falha ao carregar dados. Verifique o console para mais detalhes.");
+            categorias.value = []; recorrencias.value = []; transacoes.value = [];
+          }
+          atualizarJson();
+        }
+
+        async function salvarDados() {
+          const obj = {
+            categorias: categorias.value,
+            recorrencias: recorrencias.value,
+            transacoes: transacoes.value
+          };
+          try {
+            if (firebaseConfig.value.usarFirebase) {
+              const dbRef = getDbRef();
+              if (dbRef) {
+                await dbRef.set(obj);
+              } else {
+                throw new Error('Firebase não configurado corretamente.');
+              }
+            } else {
+              localStorage.setItem('controleFinanceiro', JSON.stringify(obj));
+            }
+          } catch (error) {
+            console.error("Erro ao salvar dados:", error);
+            alert("Falha ao salvar dados. Verifique o console.");
+          }
+          atualizarJson(); // Importante para refletir o estado salvo no textarea do JSON modal
+        }
+
+        function openModalCategoria(cat = null) {
+          modal.value = 'categoria';
+          categoriaEdita.value = cat;
+          catNome.value = cat ? cat.nome : '';
+        }
+        function salvarCategoria() {
+          if (!catNome.value.trim()) {
+            alert('O nome da categoria não pode ser vazio.');
+            return;
+          }
+          if (categoriaEdita.value) {
+            const index = categorias.value.findIndex(c => c.id === categoriaEdita.value.id);
+            if (index !== -1) categorias.value[index].nome = catNome.value.trim();
+          } else {
+            categorias.value.push({ id: Date.now().toString(), nome: catNome.value.trim() });
+          }
+          atualizarJson();
+          fecharModal();
+        }
+        function excluirCategoria(cat) {
+          if (!confirm(`Tem certeza que deseja excluir a categoria "${cat.nome}"? Todas as transações com essa categoria ficarão sem categoria.`)) return;
+          categorias.value = categorias.value.filter(c => c.id !== cat.id);
+          // Remove referência da categoria das transações
+          transacoes.value = transacoes.value.map(tx => tx.categoria === cat.id ? { ...tx, categoria: '' } : tx);
+          atualizarJson();
+        }
+
+        function openModalRecorrencia(rec = null) {
+          modal.value = 'recorrencia';
+          recorrenciaEdita.value = rec;
+          if (rec) {
+            recId.value = rec.id;
+            recNome.value = rec.nome;
+            recDiaVenc.value = rec.diaVenc;
+          } else {
+            recId.value = '';
+            recNome.value = '';
+            recDiaVenc.value = '';
+          }
+        }
+        function salvarRecorrencia() {
+          if (!recId.value.trim() || !recNome.value.trim() || !recDiaVenc.value) {
+            alert('Todos os campos da recorrência são obrigatórios.');
+            return;
+          }
+          const dia = parseInt(recDiaVenc.value, 10);
+          if (isNaN(dia) || dia < 1 || dia > 31) {
+            alert('Dia do vencimento inválido. Use um número entre 1 e 31.');
+            return;
+          }
+
+          if (recorrenciaEdita.value) {
+            const index = recorrencias.value.findIndex(r => r.id === recorrenciaEdita.value.id);
+            if (index !== -1) {
+              recorrencias.value[index] = { ...recorrencias.value[index], nome: recNome.value.trim(), diaVenc: dia };
+            }
+          } else {
+            if (recorrencias.value.find(r => r.id === recId.value.trim())) {
+              alert('ID de recorrência já existe.');
+              return;
+            }
+            recorrencias.value.push({ id: recId.value.trim(), nome: recNome.value.trim(), diaVenc: dia });
+          }
+          atualizarJson();
+          fecharModal();
+        }
+
+        function openModalTransacao(tx = null) {
+          modal.value = 'transacao';
+          transacaoEdita.value = tx;
+          if (tx) {
+            txTitulo.value = tx.titulo;
+            txDataVenc.value = tx.dataVencimento;
+            txDataPag.value = tx.dataPagamento || '';
+            txTipo.value = tx.tipo;
+            txCategoria.value = tx.categoria;
+            txRecorrencia.value = tx.recorrencia || '';
+            txValor.value = tx.valor;
+            txParcelada.value = !!tx.parcelada;
+            txParcelaAtual.value = tx.parcelaAtual || 1;
+            txParcelaTotal.value = tx.parcelaTotal || 2;
+            txPagamentoParcial.value = !!tx.pagamentoParcial;
+            txValorRestante.value = tx.valorRestante || tx.valor;
+            pagamentosParciais.value = tx.pagamentosParciais || [];
+          } else {
+            txTitulo.value = '';
+            txDataVenc.value = new Date().toISOString().substr(0, 10);
+            txDataPag.value = '';
+            txTipo.value = 'saida';
+            txCategoria.value = categorias.value.length > 0 ? categorias.value[0].id : '';
+            txRecorrencia.value = '';
+            txValor.value = '';
+            txParcelada.value = false;
+            txParcelaAtual.value = 1;
+            txParcelaTotal.value = 2;
+            txPagamentoParcial.value = false;
+            txValorRestante.value = '';
+            pagamentosParciais.value = [];
+          }
+        }
+        function salvarTransacao() {
+          if (!txTitulo.value.trim() || !txDataVenc.value || !txCategoria.value || txValor.value === '') {
+            alert('Título, Vencimento, Categoria e Valor são obrigatórios.');
+            return;
+          }
+          const valorFloat = parseFloat(txValor.value);
+          if (isNaN(valorFloat)) {
+            alert('Valor inválido.');
+            return;
+          }
+
+          const novaTx = {
+            titulo: txTitulo.value.trim(),
+            dataVencimento: txDataVenc.value,
+            dataPagamento: txDataPag.value || null,
+            tipo: txTipo.value,
+            categoria: txCategoria.value,
+            recorrencia: txRecorrencia.value || null,
+            valor: valorFloat,
+            pagamentoParcial: txPagamentoParcial.value,
+            valorRestante: txPagamentoParcial.value ? valorFloat : null,
+            pagamentosParciais: txPagamentoParcial.value ? [] : null
+          };
+
+          if (transacaoEdita.value) {
+            const index = transacoes.value.findIndex(t => t.id === transacaoEdita.value.id);
+            if (index !== -1) {
+              transacoes.value[index] = { ...transacoes.value[index], ...novaTx };
+              gerarRecorrenciasFuturas({ ...transacoes.value[index] });
+            }
+          } else {
+            const idNova = Date.now().toString();
+            transacoes.value.push({ ...novaTx, id: idNova });
+            gerarRecorrenciasFuturas({ ...novaTx, id: idNova });
+          }
+          atualizarJson();
+          fecharModal();
+        }
+        function excluirTransacao(tx) {
+          if (confirm(`Tem certeza que deseja excluir a transação "${tx.titulo}"?`)) {
+            transacoes.value = transacoes.value.filter(t => t.id !== tx.id);
+            atualizarJson();
+          }
+        }
+        function gerarRecorrenciasFuturas(txBase) {
+          if (!txBase.recorrencia) return;
+          const rec = recorrencias.value.find(r => r.id === txBase.recorrencia);
+          if (!rec) return;
+
+          const baseDate = new Date(txBase.dataVencimento + "T12:00:00");
+
+          for (let i = 1; i <= 2; i++) {
+            const futuraData = new Date(baseDate);
+            futuraData.setMonth(baseDate.getMonth() + i);
+
+            const ano = futuraData.getFullYear();
+            const mes = futuraData.getMonth();
+
+            let diaVencimentoCorreto = new Date(ano, mes, rec.diaVenc);
+
+            if (diaVencimentoCorreto.getMonth() !== mes) {
+              diaVencimentoCorreto = new Date(ano, mes + 1, 0);
+            }
+
+            const vencString = diaVencimentoCorreto.toISOString().substr(0, 10);
+
+            // Verifica duplicidade apenas por mês/ano e recorrência
+            const existe = transacoes.value.find(t => {
+              if (t.recorrencia !== txBase.recorrencia) return false;
+              if (!t.dataVencimento) return false;
+              const [y, m] = t.dataVencimento.split('-');
+              const [y2, m2] = vencString.split('-');
+              return y === y2 && m === m2;
+            });
+            if (!existe) {
+              transacoes.value.push({
+                id: Date.now().toString() + `_rec${i}`,
+                titulo: txBase.titulo,
+                dataVencimento: vencString,
+                dataPagamento: null,
+                tipo: txBase.tipo,
+                categoria: txBase.categoria,
+                recorrencia: txBase.recorrencia,
+                valor: txBase.valor
+              });
+            }
+          }
+        }
+
+        function fecharModal() {
+          modal.value = null;
+          catNome.value = ''; categoriaEdita.value = null;
+          recId.value = ''; recNome.value = ''; recDiaVenc.value = ''; recorrenciaEdita.value = null;
+          txTitulo.value = ''; txDataVenc.value = ''; txDataPag.value = ''; txTipo.value = 'saida';
+          txCategoria.value = ''; txRecorrencia.value = ''; txValor.value = ''; transacaoEdita.value = null;
+          txParcelada.value = false;
+          txParcelaAtual.value = 1;
+          txParcelaTotal.value = 2;
+          txPagamentoParcial.value = false;
+          txValorRestante.value = '';
+          pagParcialValor.value = '';
+          pagParcialData.value = '';
+          pagParcialObs.value = '';
+          pagamentosParciais.value = [];
+        }
+
+        function openModalDatabaseJson() {
+          atualizarJson(); // Garante que o JSON está atualizado antes de abrir
+          modalDatabaseJsonVisivel.value = true;
+        }
+        function fecharModalDatabaseJson() {
+          modalDatabaseJsonVisivel.value = false;
+        }
+        function aplicarDatabaseJson() {
+          if (!confirm("Tem certeza que deseja aplicar as mudanças do JSON? Isso sobrescreverá os dados atuais na aplicação e os salvará.")) {
+            return;
+          }
+          try {
+            const novosDados = JSON.parse(databaseJson.value);
+            if (novosDados && typeof novosDados === 'object') {
+              categorias.value = novosDados.categorias || [];
+              recorrencias.value = novosDados.recorrencias || [];
+              transacoes.value = novosDados.transacoes || [];
+
+              salvarDados(); // Salva os dados aplicados do JSON e atualiza o databaseJson
+
+              fecharModalDatabaseJson();
+            } else {
+              alert('JSON inválido. Não foi possível aplicar as mudanças.');
+            }
+          } catch (error) {
+            console.error("Erro ao aplicar JSON:", error);
+            alert(`Erro ao processar o JSON: ${error.message}. Verifique o console para mais detalhes.`);
+          }
+        }
+
+
+        function txVencida(tx) {
+          if (tx.dataPagamento) return false;
+          const hoje = new Date();
+          hoje.setHours(0, 0, 0, 0);
+          const dataVenc = new Date(tx.dataVencimento + "T12:00:00");
+          return dataVenc < hoje;
+        }
+        function categoriaNome(id) {
+          const cat = categorias.value.find(c => c.id === id);
+          return cat ? cat.nome : '-';
+        }
+
+        const resumoTotal = computed(() => {
+          return transacoes.value
+            .filter(tx => txVencida(tx))
+            .reduce((acc, tx) => {
+              return tx.tipo === 'saida' ? acc - tx.valor : acc + tx.valor;
+            }, 0);
+        });
+
+        const transacoesPrioritarias = computed(() =>
+          transacoesFiltradas.value.filter(tx => tx.prioritaria)
+        );
+        function priorizarTransacao(tx) {
+          const idx = transacoes.value.findIndex(t => t.id === tx.id);
+          if (idx !== -1) {
+            transacoes.value[idx].prioritaria = true;
+            salvarDados();
+          }
+        }
+        function despriorizarTransacao(tx) {
+          const idx = transacoes.value.findIndex(t => t.id === tx.id);
+          if (idx !== -1) {
+            transacoes.value[idx].prioritaria = false;
+            salvarDados();
+          }
+        }
+
+        function pagarTransacao(tx) {
+          const idx = transacoes.value.findIndex(t => t.id === tx.id);
+          if (idx !== -1) {
+            const hoje = new Date();
+            const yyyy = hoje.getFullYear();
+            const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+            const dd = String(hoje.getDate()).padStart(2, '0');
+            transacoes.value[idx].dataPagamento = `${yyyy}-${mm}-${dd}`;
+            salvarDados();
+          }
+        }
+
+        const totalPrioritarias = computed(() =>
+          transacoesPrioritarias.value.reduce((acc, tx) => tx.tipo === 'saida' ? acc - tx.valor : acc + tx.valor, 0)
+        );
+
+        const totalPrioritariasComSaldo = computed(() => {
+          const saldo = parseFloat(saldoAtual.value) || 0;
+          return saldo + totalPrioritarias.value;
+        });
+
+        const totalSelecionadoComSaldo = computed(() => {
+          const saldo = parseFloat(saldoAtual.value) || 0;
+          return saldo + totalSelecionado.value;
+        });
+
+        watch([firebaseConfig], carregarDados);
+        carregarDados();
+
+        // Persistência automática no localStorage quando não estiver usando Firebase
+        watch([categorias, recorrencias, transacoes], () => {
+          if (!firebaseConfig.value.usarFirebase) {
+            const obj = {
+              categorias: categorias.value,
+              recorrencias: recorrencias.value,
+              transacoes: transacoes.value
+            };
+            localStorage.setItem('controleFinanceiro', JSON.stringify(obj));
+          }
+        }, { deep: true });
+
+        const formatDate = d => {
+          if (!d) return '';
+          // Espera-se YYYY-MM-DD
+          const parts = d.split('-');
+          if (parts.length === 3) {
+            const [year, month, day] = parts;
+            if (year && month && day && year.length === 4 && month.length === 2 && day.length === 2) {
+              return `${day}/${month}/${year}`;
+            }
+          }
+          // Fallback para datas em outros formatos ou objetos Date (embora o ideal seja sempre string YYYY-MM-DD)
+          const dtObj = new Date(d + "T12:00:00");
+          if (isNaN(dtObj.getTime())) return d;
+          return dtObj.toLocaleDateString('pt-BR', { timeZone: 'UTC' }); // UTC para consistência
+        };
+
+        // Categorias ordenadas alfabeticamente
+        const categoriasSorted = computed(() =>
+          [...categorias.value].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+        );
+
+        const modalAjudaVisivel = ref(false);
+
+        function openModalAjuda() {
+          modalAjudaVisivel.value = true;
+        }
+
+        function fecharModalAjuda() {
+          modalAjudaVisivel.value = false;
+        }
+
+        function openModalPagamentoParcial(tx) {
+          modal.value = 'pagamentoParcial';
+          transacaoEdita.value = tx;
+          txTitulo.value = tx.titulo;
+          txValor.value = tx.valor;
+          txValorRestante.value = tx.valorRestante || tx.valor;
+          pagParcialValor.value = '';
+          pagParcialData.value = new Date().toISOString().substr(0, 10);
+          pagParcialObs.value = '';
+          pagamentosParciais.value = tx.pagamentosParciais || [];
+        }
+
+        function salvarPagamentoParcial() {
+          if (!pagParcialValor.value || !pagParcialData.value) {
+            alert('Valor e data do pagamento são obrigatórios.');
+            return;
+          }
+
+          const valorPagamento = parseFloat(pagParcialValor.value);
+          const valorRestante = parseFloat(txValorRestante.value);
+
+          if (valorPagamento <= 0) {
+            alert('O valor do pagamento deve ser maior que zero.');
+            return;
+          }
+
+          if (valorPagamento > valorRestante) {
+            alert('O valor do pagamento não pode ser maior que o valor restante.');
+            return;
+          }
+
+          const novoPagamento = {
+            data: pagParcialData.value,
+            valor: valorPagamento,
+            obs: pagParcialObs.value.trim()
+          };
+
+          const index = transacoes.value.findIndex(t => t.id === transacaoEdita.value.id);
+          if (index !== -1) {
+            if (!transacoes.value[index].pagamentosParciais) {
+              transacoes.value[index].pagamentosParciais = [];
+            }
+            transacoes.value[index].pagamentosParciais.push(novoPagamento);
+            transacoes.value[index].valorRestante = valorRestante - valorPagamento;
+
+            // Se o valor restante chegou a zero, marca como paga
+            if (transacoes.value[index].valorRestante <= 0) {
+              transacoes.value[index].dataPagamento = pagParcialData.value;
+            }
+
+            salvarDados();
+            fecharModal();
+          }
+        }
+
+        return {
+          categorias, recorrencias, transacoes,
+          firebaseConfig, filterStart, filterEnd,
+          filtroNaoPagas, filtroRecorrentes, databaseJson, modal, catNome, categoriaEdita, openModalCategoria,
+          salvarCategoria, recId, recNome, recDiaVenc, recorrenciaEdita, openModalRecorrencia,
+          salvarRecorrencia, txTitulo, txDataVenc, txDataPag, txTipo, txCategoria,
+          txRecorrencia, txValor, transacaoEdita, openModalTransacao, salvarTransacao,
+          excluirTransacao, salvarDados, carregarDados, fecharModal, transacoesFiltradas,
+          resumoTotal, txVencida, categoriaNome, formatDate, formatCurrency,
+          modalDatabaseJsonVisivel, openModalDatabaseJson, fecharModalDatabaseJson, aplicarDatabaseJson,
+          modalFirebaseConfigVisivel, firebaseConfigJson, openModalFirebaseConfig, fecharModalFirebaseConfig, salvarFirebaseConfig,
+          selecionarTodos, selecionados, totalSelecionado, toggleSelecionarTodos,
+          transacoesPrioritarias, priorizarTransacao, despriorizarTransacao,
+          pagarTransacao,
+          totalPrioritariasComSaldo,
+          totalSelecionadoComSaldo,
+          saldoAtual,
+          txParcelada, txParcelaAtual, txParcelaTotal,
+          filterCategoria,
+          filterTexto,
+          excluirCategoria,
+          categoriasSorted,
+          modalAjudaVisivel,
+          openModalAjuda,
+          fecharModalAjuda,
+          txPagamentoParcial,
+          txValorRestante,
+          pagParcialValor,
+          pagParcialData,
+          pagParcialObs,
+          pagamentosParciais,
+          openModalPagamentoParcial,
+          salvarPagamentoParcial
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+
+</html>
